@@ -51,3 +51,4 @@ under XWayland both work, and KDE runs XWayland transparently.
 - **Claude's behaviour:** model, reply length (`MAX_TOKENS`), and personality
   (`SYSTEM_PROMPT`) — `claude_bubble/config.py`.
 - **Start fresh:** delete `history.json` to clear the saved conversation.
+# Claude-Overlay
