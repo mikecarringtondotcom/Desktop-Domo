@@ -1,10 +1,10 @@
 #!/usr/bin/env xdg-open
 [Desktop Entry]
 Type=Application
-Name=Claude Bubble
-Comment=Floating Claude chat bubble
+Name=Desktop Domo
+Comment=Floating Desktop Domo chat bubble
 Exec="/home/mike/Desktop/Repositories/Claude overlay Cowrk bad but free/run.sh"
-Icon=/home/mike/Desktop/Repositories/Claude overlay Cowrk bad but free/icon.png
+Icon=/home/mike/Desktop/Repositories/Claude overlay Cowrk bad but free/Helper.png
 Terminal=false
 Categories=Utility;Chat;
 StartupNotify=false

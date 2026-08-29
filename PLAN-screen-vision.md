@@ -1,7 +1,19 @@
 # Plan: "Let Claude see my screen" (read-only, permission-gated)
 
-A design plan for adding screen-vision to the Claude Bubble app. Not yet
-implemented — this is the agreed approach before building.
+A design plan for adding screen-vision to the Desktop Domo app.
+
+> **Status: implemented.** Build steps A–D are all done and verified
+> (real non-black capture, consent dialog, vision reply, image stripping +
+> downscale + hide-own-windows). New file `desktop_domo/screenshot.py`;
+> touched `api.py`, `chat.py`, `config.py`, `history.py`, `main.py`.
+>
+> **One deviation from the design below:** on Linux the **portal** is not the
+> primary engine. The `org.freedesktop.portal.Screenshot` D-Bus call succeeds,
+> but its result vardict comes back as a `QDBusArgument` whose nested variant
+> this PySide6 build can't demarshal (`asVariant()` returns `None`), so the
+> saved file's URI is unreachable. **spectacle is the Linux engine** — present,
+> reliable, equally read-only. The app's own preview + Send/Cancel dialog
+> remains the universal permission gate on every OS.
 
 ## Goal
 
@@ -86,7 +98,7 @@ the image remains in context.
 
 ## Technical pieces
 
-- **New `claude_bubble/screenshot.py`** — the capture backend. Hides our
+- **New `desktop_domo/screenshot.py`** — the capture backend. Hides our
   windows, captures the display via the per-OS method above, returns PNG bytes.
 - **`api.py`** — extend `reply()` to accept an optional image so message
   content becomes `[{image…}, {text…}]` (Opus 4.8 supports vision). Downscale

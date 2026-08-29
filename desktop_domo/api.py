@@ -5,10 +5,33 @@
 window doesn't freeze while we wait for a reply.
 """
 
+import base64
+
 import anthropic
 from PySide6.QtCore import QThread, Signal
 
-from claude_bubble import config
+from desktop_domo import config, screenshot
+
+
+def build_user_content(text, image_png=None):
+    """Build a user message's ``content`` for the SDK.
+
+    Returns a plain string when there's no image, or a list of content blocks
+    ``[image, text]`` when a screenshot is attached. The image is downscaled
+    (see ``config.VISION_MAX_EDGE``) to keep image input-token cost modest.
+    Opus 4.8 supports vision, so this goes straight into the conversation.
+    """
+    if image_png is None:
+        return text
+    small = screenshot.downscale_png(image_png, config.VISION_MAX_EDGE)
+    encoded = base64.standard_b64encode(small).decode("ascii")
+    blocks = [{
+        "type": "image",
+        "source": {"type": "base64", "media_type": "image/png", "data": encoded},
+    }]
+    if text:
+        blocks.append({"type": "text", "text": text})
+    return blocks
 
 
 class ClaudeClient:

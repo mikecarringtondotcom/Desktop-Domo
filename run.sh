@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Launch the floating Claude bubble.
+# Launch Desktop Domo — the floating Domo assistant.
 #
 # We force the Qt "xcb" platform so the app runs through XWayland. On native
 # KDE Wayland an app cannot pin itself to a screen corner or force itself
@@ -14,4 +14,4 @@ cd "$SCRIPT_DIR"
 
 export QT_QPA_PLATFORM=xcb
 
-exec ./.venv/bin/python -m claude_bubble.main "$@"
+exec ./.venv/bin/python -m desktop_domo.main "$@"

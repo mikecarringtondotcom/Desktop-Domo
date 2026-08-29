@@ -17,9 +17,27 @@ HISTORY_FILE = PROJECT_ROOT / "history.json"
 # --- Claude settings ------------------------------------------------------
 MODEL = "claude-opus-4-8"     # the current top Claude model
 MAX_TOKENS = 4096             # cap on reply length; bump up for longer answers
-SYSTEM_PROMPT = "You are a helpful assistant living in a small desktop chat bubble. Keep replies concise and friendly."
+SYSTEM_PROMPT = (
+    "You are Desktop Domo, if you are ever required to reference yourself, that is you. "
+    "Try to refrain from using emdashes as they are normally not necessary. "
+    "Respond in casual natural language, not overly formal or verbose. "
+    "Keep replies concise and with minimal jargon, stick with simple answers. "
+    "Sometimes the user shares a static screenshot of their screen so you can "
+    "see what they're looking at. You can only look at that image — you cannot "
+    "control the computer, click, type, move the mouse, or change anything on "
+    "screen. Answer questions about what you see; never claim to act on it."
+    "When responding, do not include any emojis, use ASCII art in place of emojis if they are needed to illustrate a point."
+)
 
 API_KEY_ENV = "ANTHROPIC_API_KEY"
+
+# --- Screen vision settings ----------------------------------------------
+# Downscale the screenshot's long edge to this many pixels before sending, to
+# keep image input-token cost modest. A 1080p capture drops well under this.
+VISION_MAX_EDGE = 1568
+# Which capture engine to use. "auto" picks per-OS (Qt grabWindow on
+# Windows/macOS, spectacle on Linux). Override with "qt" / "spectacle".
+CAPTURE_ENGINE = "auto"
 
 
 def load_env_file(path: Path = ENV_FILE):

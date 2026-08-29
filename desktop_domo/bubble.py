@@ -5,18 +5,23 @@ screen. For Step 2 it has no behaviour beyond being visible and semi-
 transparent — hover and click get added in later steps.
 """
 
-from PySide6.QtCore import Qt, QPoint, QVariantAnimation, QEasingCurve, Signal
-from PySide6.QtGui import QColor, QPainter, QBrush, QFont
+from PySide6.QtCore import Qt, QPoint, QSize, QVariantAnimation, QEasingCurve, Signal
+from PySide6.QtGui import QColor, QPainter, QBrush, QFont, QPixmap
 from PySide6.QtWidgets import QWidget
 
+from desktop_domo import config
+
 # --- Look & feel knobs (tweak these freely) -------------------------------
-BUBBLE_DIAMETER = 64          # size of the round icon, in pixels
+BUBBLE_DIAMETER = 96          # long-edge size of the bubble, in pixels
 SCREEN_MARGIN = 24            # gap between the bubble and the screen edge
 REST_OPACITY = 0.5            # ~half see-through when just sitting there
 HOVER_OPACITY = 0.95          # nearly solid when the mouse is over it
 HOVER_FADE_MS = 120           # how long the darken/lighten fade takes
 BUBBLE_COLOR = QColor(0xD9, 0x77, 0x57)  # Anthropic-ish clay/orange
-GLYPH = "C"                   # single letter drawn in the middle for now
+GLYPH = ":("                   # fallback letter, drawn only if the PNG is missing
+
+# Custom bubble artwork sitting at the repo root.
+BUBBLE_IMAGE = config.PROJECT_ROOT / "Helper.png"
 
 
 class BubbleWindow(QWidget):
@@ -35,10 +40,14 @@ class BubbleWindow(QWidget):
             | Qt.WindowStaysOnTopHint
             | Qt.Tool
         )
-        # Let us paint a circle with transparent corners instead of a square.
+        # Let us paint with transparent corners instead of an opaque square.
         self.setAttribute(Qt.WA_TranslucentBackground)
 
-        self.setFixedSize(BUBBLE_DIAMETER, BUBBLE_DIAMETER)
+        # Load the bubble artwork. If it's present, the widget takes the
+        # image's aspect ratio (scaled so its long edge is BUBBLE_DIAMETER);
+        # otherwise we fall back to the drawn clay circle + glyph.
+        self._pixmap = QPixmap(str(BUBBLE_IMAGE))
+        self.setFixedSize(self._bubble_size())
 
         # Current opacity of the drawn circle. Hover fades this between
         # REST_OPACITY and HOVER_OPACITY.
@@ -54,6 +63,17 @@ class BubbleWindow(QWidget):
         self._fade.valueChanged.connect(self._on_fade_step)
 
         self.move_to_corner()
+
+    def _bubble_size(self):
+        """Widget size: the PNG's aspect ratio scaled to a BUBBLE_DIAMETER long
+        edge, or a square fallback when the PNG is missing."""
+        if self._pixmap.isNull():
+            return QSize(BUBBLE_DIAMETER, BUBBLE_DIAMETER)
+        scaled = self._pixmap.size().scaled(
+            BUBBLE_DIAMETER, BUBBLE_DIAMETER, Qt.KeepAspectRatio
+        )
+        # Never collapse to zero on a degenerate image.
+        return QSize(max(1, scaled.width()), max(1, scaled.height()))
 
     def _start_fade(self, target):
         """Animate the circle's opacity toward ``target``."""
@@ -82,24 +102,39 @@ class BubbleWindow(QWidget):
     def move_to_corner(self):
         """Park the bubble in the bottom-right corner of the primary screen."""
         screen = self.screen().availableGeometry()
-        x = screen.right() - BUBBLE_DIAMETER - SCREEN_MARGIN
-        y = screen.bottom() - BUBBLE_DIAMETER - SCREEN_MARGIN
+        x = screen.right() - self.width() - SCREEN_MARGIN
+        y = screen.bottom() - self.height() - SCREEN_MARGIN
         self.move(QPoint(x, y))
 
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
+        painter.setRenderHint(QPainter.SmoothPixmapTransform)
 
+        # The same hover fade drives the artwork's opacity.
+        painter.setOpacity(self._opacity)
+
+        if not self._pixmap.isNull():
+            scaled = self._pixmap.scaled(
+                self.size(),
+                Qt.KeepAspectRatio,
+                Qt.SmoothTransformation,
+            )
+            # Centre the image inside the widget.
+            x = (self.width() - scaled.width()) // 2
+            y = (self.height() - scaled.height()) // 2
+            painter.drawPixmap(x, y, scaled)
+            return
+
+        # Fallback: the original drawn clay circle + glyph.
         color = QColor(BUBBLE_COLOR)
-        color.setAlphaF(self._opacity)
-
         painter.setPen(Qt.NoPen)
         painter.setBrush(QBrush(color))
         painter.drawEllipse(self.rect())
 
-        # Simple glyph in the centre so the bubble reads as "a thing".
         glyph_color = QColor(Qt.white)
         glyph_color.setAlphaF(min(1.0, self._opacity + 0.3))
+        painter.setOpacity(1.0)
         painter.setPen(glyph_color)
         font = QFont()
         font.setPixelSize(int(BUBBLE_DIAMETER * 0.5))
