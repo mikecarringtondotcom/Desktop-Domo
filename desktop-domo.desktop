@@ -3,8 +3,8 @@
 Type=Application
 Name=Desktop Domo
 Comment=Floating Desktop Domo chat bubble
-Exec="/home/mike/Desktop/Repositories/Claude overlay Cowrk bad but free/run.sh"
-Icon=/home/mike/Desktop/Repositories/Claude overlay Cowrk bad but free/Helper.png
+Exec="/home/mike/Desktop/Repositories/Desktop-Domo/run.sh"
+Icon=/home/mike/Desktop/Repositories/Desktop-Domo/Helper.png
 Terminal=false
 Categories=Utility;Chat;
 StartupNotify=false
