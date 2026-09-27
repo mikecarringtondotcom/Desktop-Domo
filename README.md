@@ -84,12 +84,49 @@ every request, so searching runs on Anthropic's side — nothing extra is
 installed locally, and there's no separate API key. Turn it off with
 `ENABLE_WEB_SEARCH = False` in `desktop_domo/config.py`.
 
+## Maths
+
+Replies are typeset with [KaTeX](https://katex.org/), so LaTeX shows up as
+actual maths instead of source. Both `$inline$` / `\(inline\)` and
+`$$display$$` / `\[display\]` work, and Domo is told to use them. A literal
+dollar sign is written `\$` so a price doesn't get read as the start of a
+formula.
+
+Rendering KaTeX means running JavaScript, so the transcript is a QtWebEngine
+view (`desktop_domo/transcript.py` + `desktop_domo/assets/transcript.html`)
+rather than a plain text box. QtWebEngine ships inside the PySide6 wheel on
+both Windows and Linux, so there's nothing extra to install — it's just why
+`pip install` pulls down a few hundred MB.
+
+Code in `backticks` and ``` fences ``` is rendered as code and deliberately
+skipped by the maths pass, so asking *how to write* a formula shows the LaTeX
+rather than rendering it.
+
+If QtWebEngine can't be loaded at all, the chat falls back to a plain text
+transcript — everything still works, maths just stays as raw LaTeX.
+
+### Offline
+
+KaTeX is fetched from the jsDelivr CDN and cached on disk, so it survives
+later launches without a connection. For a copy that's always there, unpack a
+[KaTeX release](https://github.com/KaTeX/KaTeX/releases) into
+`desktop_domo/assets/katex/` (so you get `assets/katex/katex.min.js`,
+`katex.min.css`, `contrib/`, `fonts/`) — it's used automatically instead of
+the CDN.
+
+### If the transcript is blank on Linux
+
+That's the QtWebEngine GPU process, not KaTeX. Uncomment one of the
+`QTWEBENGINE_CHROMIUM_FLAGS` lines in `run.sh`.
+
 ## Layout
 
 | File | What it does |
 |------|--------------|
 | `desktop_domo/bubble.py` | The round floating bubble (hover, click) |
 | `desktop_domo/chat.py`   | The chat window (transcript, input, expand/shrink) |
+| `desktop_domo/transcript.py` | The transcript widget: KaTeX maths via QtWebEngine |
+| `desktop_domo/assets/transcript.html` | The page it renders — styling, KaTeX setup |
 | `desktop_domo/api.py`    | Claude client + background request thread |
 | `desktop_domo/config.py` | Settings, paths, API-key loading |
 | `desktop_domo/history.py`| Load/save the conversation (strips screenshots) |

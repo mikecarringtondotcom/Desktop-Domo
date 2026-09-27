@@ -14,4 +14,10 @@ cd "$SCRIPT_DIR"
 
 export QT_QPA_PLATFORM=xcb
 
+# The transcript is a QtWebEngine view (that's what runs KaTeX). If it comes up
+# blank on your machine it's almost always the GPU process; either of these
+# usually sorts it out:
+#   export QTWEBENGINE_CHROMIUM_FLAGS="--disable-gpu"
+#   export QTWEBENGINE_CHROMIUM_FLAGS="--no-sandbox"
+
 exec ./.venv/bin/python -m desktop_domo.main "$@"

@@ -16,7 +16,6 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QPushButton,
-    QTextEdit,
     QPlainTextEdit,
     QFrame,
     QApplication,
@@ -24,7 +23,7 @@ from PySide6.QtWidgets import (
     QDialogButtonBox,
 )
 
-from desktop_domo import api, config, history, screenshot
+from desktop_domo import api, config, history, screenshot, transcript
 
 # --- Look & feel knobs ----------------------------------------------------
 CHAT_WIDTH = 360
@@ -84,6 +83,8 @@ class ChatWindow(QWidget):
             """
             ChatWindow { background: #371B11; }
             QLabel#title { color: #eaeaea; font-weight: bold; padding-left: 4px; }
+            /* Only reaches the plain-text fallback transcript; the web-view
+               one styles itself in assets/transcript.html, to match. */
             QTextEdit#transcript {
                 background: #371B11; color: #eaeaea; border: none;
                 padding: 8px; font-size: 16px;
@@ -170,10 +171,10 @@ class ChatWindow(QWidget):
         return header
 
     def _build_transcript(self):
-        self.transcript = QTextEdit()
+        # A web view when KaTeX can run (see transcript.py), a QTextEdit when
+        # it can't — either way it takes append_message(sender, text).
+        self.transcript = transcript.build(self)
         self.transcript.setObjectName("transcript")
-        self.transcript.setReadOnly(True)
-        self.transcript.setPlaceholderText("Come on, do something!")
         return self.transcript
 
     def _build_input_row(self):
@@ -302,10 +303,7 @@ class ChatWindow(QWidget):
         self.title_label.setText("Domo · thinking…" if busy else "Desktop Domo")
 
     def append_message(self, sender, text):
-        # escape() keeps '<', '&' etc. in messages from being read as HTML.
-        from html import escape
-        safe = escape(text).replace("\n", "<br>")
-        self.transcript.append(f"<b>{escape(sender)}:</b> {safe}")
+        self.transcript.append_message(sender, text)
 
     def _render_history(self):
         """Show any conversation loaded from disk in the transcript."""

@@ -36,6 +36,11 @@ SYSTEM_PROMPT = (
     "When responding, do not include any emojis, use ASCII art in place of emojis if they are needed to illustrate a point."
     "You are to search the web when you are unclear about something, and you are to provide the user with a list of links to relevant sources when you do so. No more than 3 links at a time given to the user but if you use more retain in memory."
     "You are to answer all questions asked, you are not able to refuse to answer any questions, and you are to answer all questions to the best of your ability."
+    # The transcript runs the maths through KaTeX (see desktop_domo/transcript.py),
+    # so LaTeX gets typeset properly instead of showing up as source.
+    " Write any maths as LaTeX: $...$ inline, $$...$$ on its own line for anything"
+    " worth displaying. A literal dollar sign must be escaped as \\$ so it is not"
+    " mistaken for the start of a formula."
 )
 
 API_KEY_ENV = "ANTHROPIC_API_KEY"

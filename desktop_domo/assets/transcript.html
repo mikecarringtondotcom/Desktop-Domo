@@ -1,0 +1,123 @@
+<!doctype html>
+<!--
+  The chat transcript. Loaded by desktop_domo/transcript.py, which substitutes
+  the KaTeX location (a local folder if one is vendored,
+  otherwise the CDN) and the empty-state text into it.
+
+  Messages arrive from Python as appendMessage(sender, text) calls and are put
+  on the page as *text nodes*, never as HTML, so nothing in a reply can be
+  interpreted as markup.
+-->
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="__KATEX__/katex.min.css">
+<script src="__KATEX__/katex.min.js"></script>
+<script src="__KATEX__/contrib/auto-render.min.js"></script>
+<style>
+  html, body { margin: 0; background: #371B11; }
+  body {
+    padding: 8px;
+    color: #eaeaea;
+    font-family: system-ui, "Segoe UI", "Noto Sans", sans-serif;
+    font-size: 16px;
+    overflow-wrap: break-word;
+  }
+  #log:empty::before { content: "__PLACEHOLDER__"; opacity: 0.45; }
+  /* pre-wrap keeps the newlines Claude writes without any <br> splicing. */
+  .msg { white-space: pre-wrap; margin: 0 0 6px; }
+  /* KaTeX lays out its own whitespace; pre-wrap would add stray gaps. */
+  .msg .katex, .msg .katex-display { white-space: normal; }
+  .katex-display { margin: 6px 0; overflow-x: auto; overflow-y: hidden; }
+  code, pre {
+    background: #24110A; border-radius: 3px;
+    font-family: Consolas, "DejaVu Sans Mono", monospace; font-size: 14px;
+  }
+  code { padding: 0 3px; }
+  pre { padding: 6px 8px; margin: 4px 0; white-space: pre-wrap; }
+  ::selection { background: #CE7D5F; color: #140A06; }
+</style>
+</head>
+<body>
+<div id="log"></div>
+<script>
+const log = document.getElementById("log");
+
+// $...$ is included because Claude reaches for it far more often than the
+// \(...\) KaTeX defaults to. throwOnError leaves anything that isn't really
+// math sitting there as plain text instead of blowing up the message.
+const MATH_OPTIONS = {
+  delimiters: [
+    { left: "$$", right: "$$", display: true },
+    { left: "\\[", right: "\\]", display: true },
+    { left: "\\(", right: "\\)", display: false },
+    { left: "$", right: "$", display: false },
+  ],
+  throwOnError: false,
+  errorColor: "#e3897a",
+};
+
+// auto-render has no notion of an escaped delimiter, so "\$5" would open a
+// formula at the price. We swap those for a private-use character before
+// rendering and put the dollar signs back afterwards.
+const ESCAPED_DOLLAR = "\uE000";
+
+function restoreDollars(root) {
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    if (node.nodeValue.indexOf(ESCAPED_DOLLAR) !== -1) {
+      node.nodeValue = node.nodeValue.split(ESCAPED_DOLLAR).join("$");
+    }
+  }
+}
+
+// Fenced ```blocks``` and inline `code` become real <pre>/<code> elements,
+// which auto-render skips by default — so LaTeX being *discussed* rather than
+// used stays literal. Everything else lands as a plain text node.
+function fillBody(parent, text) {
+  const segment = /```([\s\S]*?)```|`([^`\n]+)`/g;
+  const prose = (slice) => document.createTextNode(slice.split("\\$").join(ESCAPED_DOLLAR));
+  let last = 0, match;
+  while ((match = segment.exec(text)) !== null) {
+    if (match.index > last) {
+      parent.appendChild(prose(text.slice(last, match.index)));
+    }
+    const fenced = match[1] !== undefined;
+    const node = document.createElement(fenced ? "pre" : "code");
+    node.textContent = fenced ? stripFence(match[1]) : match[2];
+    parent.appendChild(node);
+    last = segment.lastIndex;
+  }
+  parent.appendChild(prose(text.slice(last)));
+}
+
+// Drop the ```python language tag off the first line, and the trailing newline
+// the closing fence sits on. A single-line fence has neither.
+function stripFence(body) {
+  const newline = body.indexOf("\n");
+  if (newline !== -1 && !/\s/.test(body.slice(0, newline))) {
+    body = body.slice(newline + 1);
+  }
+  return body.replace(/\n$/, "");
+}
+
+function appendMessage(sender, text) {
+  const row = document.createElement("div");
+  row.className = "msg";
+  const who = document.createElement("b");
+  who.textContent = sender + ":";
+  row.appendChild(who);
+  row.appendChild(document.createTextNode(" "));
+  fillBody(row, text);
+  log.appendChild(row);
+  // Missing only if the KaTeX scripts couldn't load (offline, no local copy).
+  // The message is already on the page by then, so it just keeps its LaTeX.
+  if (window.renderMathInElement) {
+    renderMathInElement(row, MATH_OPTIONS);
+  }
+  restoreDollars(row);
+  window.scrollTo(0, document.body.scrollHeight);
+}
+</script>
+</body>
+</html>

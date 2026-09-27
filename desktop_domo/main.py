@@ -10,7 +10,7 @@ import sys
 from PySide6.QtGui import QAction, QIcon
 from PySide6.QtWidgets import QApplication, QMenu, QSystemTrayIcon
 
-from desktop_domo import config
+from desktop_domo import config, transcript
 from desktop_domo.bubble import BubbleWindow
 from desktop_domo.chat import ChatWindow
 
@@ -103,6 +103,8 @@ def _show_chat(bubble, chat):
 
 def main():
     _claim_windows_taskbar_identity()
+    # Has to happen before the QApplication exists — see transcript.prepare().
+    transcript.prepare()
 
     app = QApplication(sys.argv)
     icon = QIcon(str(APP_ICON))
