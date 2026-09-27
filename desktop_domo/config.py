@@ -16,7 +16,14 @@ HISTORY_FILE = PROJECT_ROOT / "history.json"
 
 # --- Claude settings ------------------------------------------------------
 MODEL = "claude-fable-5-1"     # the current top Claude model
-MAX_TOKENS = 4096             # cap on reply length; bump up for longer answers
+# Fable 5.1 always thinks, and thinking tokens count against MAX_TOKENS, so
+# this has to leave room for the reasoning *and* the reply. 4096 truncated
+# real answers mid-sentence.
+MAX_TOKENS = 16000
+# How hard the model works per reply: low | medium | high | xhigh | max.
+# "medium" keeps a desktop bubble feeling responsive; raise it for harder
+# questions at the cost of latency and tokens.
+EFFORT = "medium"
 SYSTEM_PROMPT = (
     "You are Desktop Domo, if you are ever required to reference yourself, that is you. "
     "Try to refrain from using emdashes as they are normally not necessary. "
@@ -33,6 +40,21 @@ SYSTEM_PROMPT = (
 
 API_KEY_ENV = "ANTHROPIC_API_KEY"
 
+# --- Web search -----------------------------------------------------------
+# The system prompt tells Domo to look things up, which only works if the
+# server-side search tool is actually attached to the request. Searching runs
+# on Anthropic's side; nothing extra is installed locally.
+ENABLE_WEB_SEARCH = True
+WEB_SEARCH_TOOL = "web_search_20260209"
+WEB_SEARCH_MAX_USES = 3       # searches per reply, keeps a stray loop cheap
+
+# --- Refusal fallback -----------------------------------------------------
+# Fable 5.1 can decline a request outright (stop_reason "refusal"), which
+# would otherwise show up as an empty reply. With this on, the API retries the
+# same request on a fallback model inside the same call instead.
+ENABLE_REFUSAL_FALLBACK = True
+FALLBACK_BETA = "server-side-fallback-2026-07-01"
+
 # --- Screen vision settings ----------------------------------------------
 # Downscale the screenshot's long edge to this many pixels before sending, to
 # keep image input-token cost modest. A 1080p capture drops well under this.
@@ -40,6 +62,11 @@ VISION_MAX_EDGE = 1568
 # Which capture engine to use. "auto" picks per-OS (Qt grabWindow on
 # Windows/macOS, spectacle on Linux). Override with "qt" / "spectacle".
 CAPTURE_ENGINE = "auto"
+
+# --- Windows integration --------------------------------------------------
+# Explicit AppUserModelID so Windows ties the running process to the Start
+# Menu shortcut (correct taskbar icon and grouping instead of a bare python).
+APP_USER_MODEL_ID = "DesktopDomo.Bubble"
 
 
 def load_env_file(path: Path = ENV_FILE):
@@ -51,7 +78,9 @@ def load_env_file(path: Path = ENV_FILE):
     """
     if not path.exists():
         return
-    for raw in path.read_text().splitlines():
+    # Always UTF-8: Python still defaults to the locale encoding (cp1252 on
+    # Windows), which would mangle a non-ASCII value or raise outright.
+    for raw in path.read_text(encoding="utf-8").splitlines():
         line = raw.strip()
         if not line or line.startswith("#") or "=" not in line:
             continue

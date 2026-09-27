@@ -15,8 +15,8 @@ def load():
     if not path.exists():
         return []
     try:
-        data = json.loads(path.read_text())
-    except (json.JSONDecodeError, OSError):
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError, UnicodeDecodeError):
         return []
     # Basic sanity check: must be a list of role/content dicts.
     if not isinstance(data, list):
@@ -37,7 +37,9 @@ def save(history):
     """
     safe = _strip_images(history)
     try:
-        config.HISTORY_FILE.write_text(json.dumps(safe, indent=2))
+        config.HISTORY_FILE.write_text(
+            json.dumps(safe, indent=2, ensure_ascii=False), encoding="utf-8"
+        )
     except OSError:
         pass  # not worth crashing the app over a failed history write
 

@@ -299,7 +299,7 @@ class ChatWindow(QWidget):
         self.send_btn.setEnabled(not busy)
         self.capture_btn.setEnabled(not busy)
         self.input.setReadOnly(busy)
-        self.title_label.setText("Claude · thinking…" if busy else "Claude")
+        self.title_label.setText("Domo · thinking…" if busy else "Desktop Domo")
 
     def append_message(self, sender, text):
         # escape() keeps '<', '&' etc. in messages from being read as HTML.
