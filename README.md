@@ -50,13 +50,22 @@ An `ANTHROPIC_API_KEY` already exported in your environment takes precedence.
 
 Neither window shows up in the taskbar, so there are three ways out:
 
-- The **KILL** button in the chat header quits everything.
+- The **✕** button in the chat's title bar quits everything.
 - **Quit Desktop Domo** in the tray icon's right-click menu.
 - `Ctrl+C` in the terminal, if you launched it from one.
 
-The ✕ button only *hides* the chat — the bubble stays alive. The tray icon
-also lets you hide the bubble itself and get it back later, which is handy if
-it lands somewhere awkward.
+The **–** button only *tucks the chat away* — the bubble stays alive, and
+clicking it brings the chat back. The tray icon also lets you hide the bubble
+itself and get it back later, which is handy if it lands somewhere awkward.
+
+## The chat window
+
+Styled like an old-school messenger, in dark mode: a clay title bar (drag it
+to move the window), a "Chat started today at …" strip, then speech bubbles —
+Domo's on the left next to its picture, yours on the right in clay, each with
+the time it was sent. "Domo is typing..." shows while a reply is on its way.
+Enter sends, Shift+Enter adds a line, and the grip in the bottom-right corner
+resizes the window.
 
 ## Show Claude your screen
 
@@ -102,8 +111,9 @@ Code in `backticks` and ``` fences ``` is rendered as code and deliberately
 skipped by the maths pass, so asking *how to write* a formula shows the LaTeX
 rather than rendering it.
 
-If QtWebEngine can't be loaded at all, the chat falls back to a plain text
-transcript — everything still works, maths just stays as raw LaTeX.
+If QtWebEngine can't be loaded at all, the chat falls back to the same
+bubbles drawn with plain Qt widgets — everything still works, maths just stays
+as raw LaTeX.
 
 ### Offline
 
@@ -124,9 +134,10 @@ That's the QtWebEngine GPU process, not KaTeX. Uncomment one of the
 | File | What it does |
 |------|--------------|
 | `desktop_domo/bubble.py` | The round floating bubble (hover, click) |
-| `desktop_domo/chat.py`   | The chat window (transcript, input, expand/shrink) |
-| `desktop_domo/transcript.py` | The transcript widget: KaTeX maths via QtWebEngine |
-| `desktop_domo/assets/transcript.html` | The page it renders — styling, KaTeX setup |
+| `desktop_domo/chat.py`   | The chat window (title bar, input bar, expand/shrink) |
+| `desktop_domo/theme.py`  | Colours, fonts, Domo's name and avatar — shared by the window and transcript |
+| `desktop_domo/transcript.py` | The transcript widget: speech bubbles, KaTeX maths via QtWebEngine |
+| `desktop_domo/assets/transcript.html` | The page it renders — bubble styling, KaTeX setup |
 | `desktop_domo/api.py`    | Claude client + background request thread |
 | `desktop_domo/config.py` | Settings, paths, API-key loading |
 | `desktop_domo/history.py`| Load/save the conversation (strips screenshots) |
@@ -150,4 +161,7 @@ Everything below lives in `desktop_domo/config.py` unless noted.
 - **Personality:** `SYSTEM_PROMPT`.
 - **Bubble look:** size, colour, opacity, position — constants at the top of
   `desktop_domo/bubble.py`.
+- **Chat look:** colours, font sizes and the avatar's size in
+  `desktop_domo/theme.py`; window size and how many lines the text field grows
+  to at the top of `desktop_domo/chat.py`.
 - **Start fresh:** delete `history.json` to clear the saved conversation.

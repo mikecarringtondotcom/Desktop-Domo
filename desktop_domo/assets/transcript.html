@@ -1,12 +1,12 @@
 <!doctype html>
 <!--
   The chat transcript. Loaded by desktop_domo/transcript.py, which substitutes
-  the KaTeX location (a local folder if one is vendored,
-  otherwise the CDN) and the empty-state text into it.
+  the palette (__THEME__, from theme.py), the KaTeX location (a local folder
+  if one is vendored, otherwise the CDN), and the few strings below into it.
 
-  Messages arrive from Python as appendMessage(sender, text) calls and are put
-  on the page as *text nodes*, never as HTML, so nothing in a reply can be
-  interpreted as markup.
+  Messages arrive from Python as appendMessage(role, text, time, smooth)
+  calls and are put on the page as *text nodes*, never as HTML, so nothing in
+  a reply can be interpreted as markup.
 -->
 <html>
 <head>
@@ -15,33 +15,137 @@
 <script src="__KATEX__/katex.min.js"></script>
 <script src="__KATEX__/contrib/auto-render.min.js"></script>
 <style>
-  html, body { margin: 0; background: #371B11; }
+  __THEME__
+
+  html { overflow-x: hidden; }
+  html, body { margin: 0; background: var(--bg); }
   body {
-    padding: 8px;
-    color: #eaeaea;
-    font-family: system-ui, "Segoe UI", "Noto Sans", sans-serif;
-    font-size: 16px;
-    overflow-wrap: break-word;
+    /* A flex column whose log has margin-top: auto, so a short chat sits at
+       the bottom like a messenger. (justify-content: flex-end would do that
+       too, but makes the top of a long chat unscrollable.) */
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    min-height: 100vh;
+    padding: 14px 12px;
+    font-family: var(--font);
+    font-size: var(--text-px);
+    color: var(--ink);
   }
-  #log:empty::before { content: "__PLACEHOLDER__"; opacity: 0.45; }
-  /* pre-wrap keeps the newlines Claude writes without any <br> splicing. */
-  .msg { white-space: pre-wrap; margin: 0 0 6px; }
+  #log { margin-top: auto; display: flex; flex-direction: column; gap: 10px; }
+  #log:empty::before {
+    content: "__PLACEHOLDER__";
+    align-self: center;
+    color: var(--muted);
+    font-size: var(--small-px);
+    font-style: italic;
+  }
+
+  /* One row per message. A grid so the avatar can bottom-align with the
+     bubble itself rather than with the timestamp under it. */
+  .row { display: grid; column-gap: 8px; }
+  /* Domo's replies sit on the left, yours on the right. The avatar column is
+     a fixed width, so the picture never grows or shrinks with the reply. */
+  .row.in  { grid-template-columns: var(--avatar-w) fit-content(82%); justify-content: start; }
+  .row.out { grid-template-columns: fit-content(78%); justify-content: end; }
+
+  .avatar {
+    grid-row: 1;
+    align-self: end;
+    width: var(--avatar-w);
+    height: var(--avatar-h);
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+  img.avatar { object-fit: contain; }
+  /* Fallback when Helper.png is missing: the clay square with an initial. */
+  div.avatar {
+    border-radius: 3px;
+    background: var(--clay);
+    color: var(--cream);
+    font-weight: 500;
+    line-height: var(--avatar-h);
+    text-align: center;
+  }
+  .bubble {
+    grid-row: 1;
+    min-width: 0;
+    padding: 8px 12px;
+    line-height: 1.4;
+    /* pre-wrap keeps the newlines Claude writes without any <br> splicing. */
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+  .in .avatar { grid-column: 1; }
+  .in .bubble {
+    grid-column: 2;
+    justify-self: start;
+    background: var(--bubble-in);
+    color: var(--ink);
+    /* Sharp corner on the speaker's side: bottom-left for Domo. */
+    border-radius: 14px 14px 14px 3px;
+  }
+  .out .bubble {
+    justify-self: end;
+    background: var(--clay);
+    color: var(--cream);
+    border-radius: 14px 14px 3px 14px;
+  }
+  .time {
+    grid-row: 2;
+    margin-top: 2px;
+    color: var(--muted);
+    font-size: var(--small-px);
+  }
+  .in .time  { grid-column: 2; margin-left: 4px; }
+  .out .time { justify-self: end; margin-right: 4px; }
+
+  /* Errors and other notices from the app itself, not from either speaker. */
+  .note {
+    align-self: center;
+    max-width: 90%;
+    color: var(--muted);
+    font-size: var(--small-px);
+    text-align: center;
+    white-space: pre-wrap;
+  }
+
+  #typing {
+    display: none;
+    margin-top: 10px;
+    color: var(--muted);
+    font-size: var(--small-px);
+    font-style: italic;
+  }
+  body.typing #typing { display: block; }
+
   /* KaTeX lays out its own whitespace; pre-wrap would add stray gaps. */
-  .msg .katex, .msg .katex-display { white-space: normal; }
+  .bubble .katex, .bubble .katex-display { white-space: normal; }
   .katex-display { margin: 6px 0; overflow-x: auto; overflow-y: hidden; }
+  /* Translucent black so code reads on both the brown and the clay bubble. */
   code, pre {
-    background: #24110A; border-radius: 3px;
-    font-family: Consolas, "DejaVu Sans Mono", monospace; font-size: 14px;
+    background: rgba(0, 0, 0, 0.22);
+    border-radius: 3px;
+    font-family: Consolas, "DejaVu Sans Mono", monospace;
+    font-size: 12px;
   }
   code { padding: 0 3px; }
   pre { padding: 6px 8px; margin: 4px 0; white-space: pre-wrap; }
-  ::selection { background: #CE7D5F; color: #140A06; }
+  ::selection { background: var(--cream); color: #141413; }
+
+  ::-webkit-scrollbar { width: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--scroll); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--scroll-hover); }
 </style>
 </head>
 <body>
 <div id="log"></div>
+<div id="typing">__TYPING__</div>
 <script>
 const log = document.getElementById("log");
+const ASSISTANT_INITIAL = "__INITIAL__";
+const AVATAR_URL = "__AVATAR__";   // empty when Helper.png is missing
 
 // $...$ is included because Claude reaches for it far more often than the
 // \(...\) KaTeX defaults to. throwOnError leaves anything that isn't really
@@ -60,7 +164,7 @@ const MATH_OPTIONS = {
 // auto-render has no notion of an escaped delimiter, so "\$5" would open a
 // formula at the price. We swap those for a private-use character before
 // rendering and put the dollar signs back afterwards.
-const ESCAPED_DOLLAR = "\uE000";
+const ESCAPED_DOLLAR = "";
 
 function restoreDollars(root) {
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
@@ -101,23 +205,74 @@ function stripFence(body) {
   return body.replace(/\n$/, "");
 }
 
-function appendMessage(sender, text) {
-  const row = document.createElement("div");
-  row.className = "msg";
-  const who = document.createElement("b");
-  who.textContent = sender + ":";
-  row.appendChild(who);
-  row.appendChild(document.createTextNode(" "));
-  fillBody(row, text);
+function element(className, text) {
+  const node = document.createElement("div");
+  node.className = className;
+  if (text !== undefined) node.textContent = text;
+  return node;
+}
+
+// Domo's picture, or the lettered square if the image can't be had.
+function avatar() {
+  const fallback = () => element("avatar", ASSISTANT_INITIAL);
+  if (!AVATAR_URL) return fallback();
+  const img = document.createElement("img");
+  img.className = "avatar";
+  img.src = AVATAR_URL;
+  img.alt = "";
+  img.onerror = () => img.replaceWith(fallback());
+  return img;
+}
+
+// role is "user" (outgoing, right), "assistant" (incoming, left, with avatar)
+// or "note" (a centred notice from the app). time may be empty for messages
+// saved before timestamps existed.
+function appendMessage(role, text, time, smooth) {
+  if (role === "note") {
+    log.appendChild(element("note", text));
+    scrollToBottom(smooth);
+    return;
+  }
+  const incoming = role === "assistant";
+  const row = element("row " + (incoming ? "in" : "out"));
+  if (incoming) row.appendChild(avatar());
+  const bubble = element("bubble");
+  fillBody(bubble, text);
+  row.appendChild(bubble);
+  if (time) row.appendChild(element("time", time));
   log.appendChild(row);
   // Missing only if the KaTeX scripts couldn't load (offline, no local copy).
   // The message is already on the page by then, so it just keeps its LaTeX.
   if (window.renderMathInElement) {
-    renderMathInElement(row, MATH_OPTIONS);
+    renderMathInElement(bubble, MATH_OPTIONS);
   }
-  restoreDollars(row);
-  window.scrollTo(0, document.body.scrollHeight);
+  restoreDollars(bubble);
+  scrollToBottom(smooth);
 }
+
+// The typing line lives after #log, so it always stays under the newest row.
+function setTyping(on, smooth) {
+  document.body.classList.toggle("typing", on);
+  scrollToBottom(smooth);
+}
+
+function scrollToBottom(smooth) {
+  window.scrollTo({
+    top: document.documentElement.scrollHeight,
+    behavior: smooth ? "smooth" : "instant",
+  });
+}
+
+// Re-wrapping on a resize (or expand/shrink) changes the page height. If you
+// were reading the newest message, keep it in view rather than drifting.
+let pinned = true;
+window.addEventListener("scroll", () => {
+  const doc = document.documentElement;
+  pinned = doc.scrollHeight - (window.scrollY + window.innerHeight) < 24;
+});
+window.addEventListener("resize", () => {
+  if (pinned) scrollToBottom(false);
+});
 </script>
 </body>
 </html>

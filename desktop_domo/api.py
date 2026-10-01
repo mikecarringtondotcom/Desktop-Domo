@@ -123,8 +123,11 @@ class ClaudeWorker(QThread):
     def __init__(self, client, history, parent=None):
         super().__init__(parent)
         self._client = client
-        # Copy so later edits to the window's history don't affect this run.
-        self._history = list(history)
+        # Copy so later edits to the window's history don't affect this run,
+        # keeping only the fields the API accepts (the chat also stores `time`).
+        self._history = [
+            {"role": m["role"], "content": m["content"]} for m in history
+        ]
 
     def run(self):
         try:

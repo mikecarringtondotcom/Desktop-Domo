@@ -1,7 +1,8 @@
 """Load and save the chat transcript so it survives between sessions.
 
-Stored as a JSON list of {"role", "content"} dicts in `history.json` — the
-same shape the Anthropic API expects, so we can send it straight back.
+Stored as a JSON list of {"role", "content", "time"} dicts in `history.json`.
+`time` (an ISO timestamp, missing on older saves) is only for the chat's
+bubbles; api.ClaudeWorker drops it, leaving the shape the Anthropic API expects.
 """
 
 import json
