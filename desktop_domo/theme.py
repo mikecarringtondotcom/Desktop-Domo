@@ -38,10 +38,22 @@ FIELD_BORDER = "#B0AEA5"
 PLACEHOLDER = "#888780"
 
 # --- Type ------------------------------------------------------------------
-# Tahoma first for the retro look; Verdana / Segoe UI / sans-serif keep it a
-# sans face on machines without it (most Linux installs).
-FONT_FAMILIES = ["Tahoma", "Verdana", "Segoe UI", "sans-serif"]
-FONT_CSS = 'Tahoma, Verdana, "Segoe UI", sans-serif'
+# NK57 Monospace (normal width), loaded from the project's Fonts/ folder by
+# load_fonts() (Qt) and font_face_css() (the transcript page). The few
+# symbols it lacks (✕ ✎) fall through to Tahoma, then Verdana / Segoe UI /
+# sans-serif — which is also the whole stack if the folder is missing.
+# The folder also has Cd / Sc / Se / Ex (narrower to wider) cuts and
+# Lt / Bk / Sb / Eb weights; swap the file names below to try them.
+FONT_DIR = config.PROJECT_ROOT / "Fonts" / "nk57_monospace"
+FONT_FAMILY = "NK57 Monospace"                 # the family name inside the files
+FONT_FILES = {                                 # file -> (CSS weight, CSS style)
+    "NK57 Monospace No Rg.otf": (400, "normal"),
+    "NK57 Monospace No Rg It.otf": (400, "italic"),
+    "NK57 Monospace No Bd.otf": (700, "normal"),
+    "NK57 Monospace No Bd It.otf": (700, "italic"),
+}
+FONT_FAMILIES = [FONT_FAMILY, "Tahoma", "Verdana", "Segoe UI", "sans-serif"]
+FONT_CSS = f'"{FONT_FAMILY}", Tahoma, Verdana, "Segoe UI", sans-serif'
 TEXT_PX = 13              # messages, input, names
 SMALL_PX = 11             # timestamps, status, hints, typing line
 
@@ -61,14 +73,44 @@ TITLE_AVATAR_W = 42
 TITLE_AVATAR_H = 26
 
 
-def app_font(px=TEXT_PX):
-    """Tahoma, falling back through FONT_FAMILIES, then any sans-serif face."""
+def _font_paths():
+    """The bundled font files that are actually present, with their CSS face."""
+    for name, face in FONT_FILES.items():
+        path = FONT_DIR / name
+        if path.exists():
+            yield path, face
+
+
+def load_fonts():
+    """Register the bundled font with Qt. Call once, after QApplication exists."""
+    from PySide6.QtGui import QFontDatabase
+
+    for path, _face in _font_paths():
+        QFontDatabase.addApplicationFont(str(path))
+
+
+def font_face_css():
+    """@font-face rules for the transcript page.
+
+    The web view doesn't see fonts registered with Qt, so it loads the same
+    files itself, straight off disk.
+    """
+    return "\n".join(
+        f'@font-face {{ font-family: "{FONT_FAMILY}"; src: url("{path.as_uri()}");'
+        f" font-weight: {weight}; font-style: {style}; }}"
+        for path, (weight, style) in _font_paths()
+    )
+
+
+def app_font(px=TEXT_PX, italic=False):
+    """The bundled mono face, falling back through FONT_FAMILIES per glyph."""
     from PySide6.QtGui import QFont
 
     font = QFont()
     font.setFamilies(FONT_FAMILIES)
     font.setStyleHint(QFont.SansSerif)
     font.setPixelSize(px)
+    font.setItalic(italic)
     return font
 
 

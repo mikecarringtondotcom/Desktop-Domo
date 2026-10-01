@@ -10,7 +10,7 @@ import sys
 from PySide6.QtGui import QAction, QIcon
 from PySide6.QtWidgets import QApplication, QMenu, QSystemTrayIcon
 
-from desktop_domo import config, transcript
+from desktop_domo import config, theme, transcript
 from desktop_domo.bubble import BubbleWindow
 from desktop_domo.chat import ChatWindow
 
@@ -107,6 +107,9 @@ def main():
     transcript.prepare()
 
     app = QApplication(sys.argv)
+    # The chat's font ships in Fonts/; it has to be registered before any
+    # widget asks for it.
+    theme.load_fonts()
     icon = QIcon(str(APP_ICON))
     # Icon shown for the app in the taskbar / window switcher.
     app.setWindowIcon(icon)

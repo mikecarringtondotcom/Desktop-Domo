@@ -164,4 +164,7 @@ Everything below lives in `desktop_domo/config.py` unless noted.
 - **Chat look:** colours, font sizes and the avatar's size in
   `desktop_domo/theme.py`; window size and how many lines the text field grows
   to at the top of `desktop_domo/chat.py`.
+- **Font:** NK57 Monospace, loaded from `Fonts/nk57_monospace/` — `FONT_FILES`
+  in `desktop_domo/theme.py` picks which width/weight files. If the folder is
+  missing the chat falls back to Tahoma.
 - **Start fresh:** delete `history.json` to clear the saved conversation.

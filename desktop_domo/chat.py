@@ -613,12 +613,15 @@ class InputBar(QFrame):
 
         hint = QLabel("Press Enter to send  ·  Shift+Enter for a new line")
         hint.setObjectName("hint")
+        # Wraps rather than holding the window wider than CHAT_MIN_WIDTH —
+        # the mono font makes this line longer than the window's narrowest.
+        hint.setWordWrap(True)
         self.grip = ResizeGrip(self)
 
         hint_row = QHBoxLayout()
         hint_row.setContentsMargins(0, 0, 0, 0)
-        hint_row.addWidget(hint)
-        hint_row.addStretch(1)
+        # The hint takes all the spare width, so it only wraps when it must.
+        hint_row.addWidget(hint, stretch=1)
         hint_row.addWidget(self.grip, alignment=Qt.AlignBottom | Qt.AlignRight)
         column.addLayout(hint_row)
 

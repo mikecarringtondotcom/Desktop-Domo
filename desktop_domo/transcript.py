@@ -168,7 +168,7 @@ class NativeTranscript(QScrollArea):
         self._rows.addStretch(1)
 
         self._placeholder = QLabel(PLACEHOLDER)
-        self._placeholder.setFont(theme.app_font())
+        self._placeholder.setFont(theme.app_font(theme.SMALL_PX, italic=True))
         self._placeholder.setObjectName("placeholder")
         self._placeholder.setAlignment(Qt.AlignCenter)
         self._rows.addWidget(self._placeholder)
@@ -181,9 +181,7 @@ class NativeTranscript(QScrollArea):
         self.setStyleSheet(
             f"""
             QScrollArea, QWidget#log {{ background: {theme.BACKGROUND}; border: none; }}
-            QLabel#placeholder {{
-                color: {theme.MUTED}; font-size: {theme.SMALL_PX}px; font-style: italic;
-            }}
+            QLabel#placeholder {{ color: {theme.MUTED}; }}
             QScrollBar:vertical {{ background: transparent; width: 8px; margin: 0; }}
             QScrollBar::handle:vertical {{
                 background: {theme.SCROLL_HANDLE}; border-radius: 4px; min-height: 24px;
@@ -238,18 +236,20 @@ class MessageRow(QWidget):
 
     def __init__(self, role, text, time="", parent=None):
         super().__init__(parent)
-        # Set here rather than inherited: fit_to measures the text before the
-        # row is placed in the window, and must measure it in the right face.
-        self.setFont(theme.app_font())
         self._role = role
         incoming = role == "assistant"
+        small = theme.app_font(theme.SMALL_PX)
 
         grid = QGridLayout(self)
         grid.setContentsMargins(0, 0, 0, 0)
         grid.setHorizontalSpacing(8)
         grid.setVerticalSpacing(2)
 
+        # Fonts are set in code, not in the stylesheet below: a QSS font rule
+        # is resolved before the row joins the window and drops the family.
+        # fit_to also measures the text before then, so it needs them early.
         self.bubble = QLabel(text)
+        self.bubble.setFont(small if role == "note" else theme.app_font())
         self.bubble.setTextFormat(Qt.PlainText)
         self.bubble.setWordWrap(True)
         self.bubble.setTextInteractionFlags(Qt.TextSelectableByMouse)
@@ -259,6 +259,7 @@ class MessageRow(QWidget):
             self.bubble.setContentsMargins(12, 8, 12, 8)
 
         stamp = QLabel(time)
+        stamp.setFont(small)
         stamp.setVisible(bool(time))
 
         if role == "note":
@@ -282,7 +283,6 @@ class MessageRow(QWidget):
 
         self.setStyleSheet(
             f"""
-            QLabel {{ font-size: {theme.TEXT_PX}px; }}
             QLabel#bubbleIn {{
                 background: {theme.BUBBLE_IN}; color: {theme.INK};
                 border-top-left-radius: 14px; border-top-right-radius: 14px;
@@ -294,12 +294,9 @@ class MessageRow(QWidget):
                 border-bottom-right-radius: 3px; border-bottom-left-radius: 14px;
             }}
             QLabel#avatar[fallback="true"] {{
-                background: {theme.CLAY}; color: {theme.CREAM};
-                border-radius: 3px; font-weight: 500;
+                background: {theme.CLAY}; color: {theme.CREAM}; border-radius: 3px;
             }}
-            QLabel#timeIn, QLabel#timeOut, QLabel#note {{
-                color: {theme.MUTED}; font-size: {theme.SMALL_PX}px;
-            }}
+            QLabel#timeIn, QLabel#timeOut, QLabel#note {{ color: {theme.MUTED}; }}
             QLabel#timeIn {{ margin-left: 4px; }}
             QLabel#timeOut {{ margin-right: 4px; }}
             """
@@ -318,7 +315,7 @@ class MessageRow(QWidget):
         cap = max(80, int(area_width * share))
 
         label = self.bubble
-        label.ensurePolished()  # so the stylesheet's font and padding count
+        label.ensurePolished()  # measure it as styled, not as constructed
         margins = label.contentsMargins()
         chrome = margins.left() + margins.right()
         metrics = label.fontMetrics()
@@ -366,10 +363,8 @@ class TypingIndicator(QLabel):
 
     def __init__(self, parent=None):
         super().__init__(TYPING_TEXT, parent)
-        self.setFont(theme.app_font())
-        self.setStyleSheet(
-            f"color: {theme.MUTED}; font-size: {theme.SMALL_PX}px; font-style: italic;"
-        )
+        self.setFont(theme.app_font(theme.SMALL_PX, italic=True))
+        self.setStyleSheet(f"color: {theme.MUTED};")
         self.hide()
 
 
@@ -381,7 +376,7 @@ def _page_html():
     avatar_url = QUrl.fromLocalFile(str(avatar)).toString() if avatar.exists() else ""
     return (
         TEMPLATE.read_text(encoding="utf-8")
-        .replace("__THEME__", theme.css_variables())
+        .replace("__THEME__", f"{theme.font_face_css()}\n{theme.css_variables()}")
         .replace("__KATEX__", katex)
         .replace("__PLACEHOLDER__", PLACEHOLDER)
         .replace("__TYPING__", escape(TYPING_TEXT))
